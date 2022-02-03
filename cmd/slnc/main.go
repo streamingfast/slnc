@@ -20,12 +20,12 @@ import (
 	"github.com/streamingfast/slnc/cmd/slnc/cmd"
 )
 
-var date = time.Now()
+var date = time.Now().Format(time.RFC3339)
 var commit = ""
 var version = "dev"
 
 func init() {
-	cmd.Date = date.Format(time.RFC3339)
+	cmd.Date = date
 	cmd.Commit = commit
 	cmd.Version = version
 }

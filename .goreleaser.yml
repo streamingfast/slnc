@@ -13,14 +13,11 @@ builds:
   goarch:
   - arm64
   - amd64
-  - "386"
   targets:
   - linux_amd64
-  - linux_386
   - darwin_amd64
   - darwin_arm64
   - windows_amd64
-  - windows_386
   main: ./cmd/slnc
   ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
   binary: slnc
@@ -29,7 +26,6 @@ builds:
 archives:
 - name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
   replacements:
-    "386": i386
     amd64: x86_64
     darwin: macOS
     linux: linux
@@ -39,10 +35,8 @@ archives:
   - goos: windows
     format: zip
   files:
-  - LICENCE
+  - LICENSE
   - README.md
-  - changelog*
-  - CHANGELOG*
 snapshot:
   name_template: '{{ .Tag }}-next'
 checksum:
