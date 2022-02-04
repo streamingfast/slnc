@@ -14,7 +14,7 @@ A command-line client to Solana clusters - by StreamingFast (streamingfast.io)
 ```bash
 brew install streamingfast/tap/slnc
 ```
-
+``
 3. Build from source with (Golang 1.17 required):
 
 ```bash

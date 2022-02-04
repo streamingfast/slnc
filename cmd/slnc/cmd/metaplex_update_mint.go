@@ -16,14 +16,14 @@ package cmd
 
 import (
 	"fmt"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/streamingfast/solana-go"
-	"github.com/streamingfast/solana-go/programs/metaplex"
 	"github.com/streamingfast/solana-go/rpc"
 	"github.com/streamingfast/solana-go/rpc/confirm"
 	"go.uber.org/zap"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/streamingfast/solana-go/programs/metaplex"
 )
 
 var metaplexUpdateMintCmd = &cobra.Command{
@@ -68,7 +68,7 @@ var metaplexUpdateMintCmd = &cobra.Command{
 				Share:   0,
 			},
 		}
-		updateMetadataInstruction := metaplex.NewUpdateMetadataAccountInstruction(
+		updateMetadataInstruction := metaplex.NewUpdateMetadataAccountV1Instruction(
 			programID,
 			&metaplex.Data{
 				Name:                 "Alfred 0042",
