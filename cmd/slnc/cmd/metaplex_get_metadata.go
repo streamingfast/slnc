@@ -81,5 +81,10 @@ func getAndDisplayMetadata(ctx context.Context, metadataAddr solana.PublicKey) e
 		fmt.Println("> No creators found")
 	}
 
+	if metadata.Data.URI != "" {
+		fmt.Println()
+		fetchAndPrintJSONFromURL("Metadata", metadata.Data.URI)
+	}
+
 	return nil
 }

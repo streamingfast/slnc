@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/streamingfast/logging"
-	"go.uber.org/zap"
 )
 
 // Date represents the date when the compilation of the binary happen,
@@ -48,8 +47,7 @@ var RootCmd = &cobra.Command{
 	Short: "A command-line client to Solana clusters - by StreamingFast (streamingfast.io)",
 }
 
-var zlog *zap.Logger
-var tracer = logging.ApplicationLogger("slnc", "github.com/streamingfast/slnc/cmd/slnc/cmd", &zlog)
+var zlog, tracer = logging.ApplicationLogger("slnc", "github.com/streamingfast/slnc/cmd/slnc/cmd")
 
 func init() {
 	cobra.OnInitialize(initConfig)
