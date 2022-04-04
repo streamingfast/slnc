@@ -54,6 +54,10 @@ func getClient(opt ...rpc.ClientOption) *rpc.Client {
 	return api
 }
 
+func getRPCURL() string {
+	return sanitizeAPIURL(viper.GetString("global-rpc-url"))
+}
+
 func getWsClient(ctx context.Context) (*ws.Client, error) {
 	wsURL := sanitizeAPIURL(viper.GetString("global-ws-url"))
 	if wsURL == "" {

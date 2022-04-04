@@ -15,26 +15,29 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/streamingfast/solana-go"
 	"github.com/streamingfast/solana-go/rpc"
 	"github.com/streamingfast/solana-go/rpc/confirm"
 	"go.uber.org/zap"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/streamingfast/solana-go/programs/metaplex"
 )
 
-var metaplexUpdateMintCmd = &cobra.Command{
-	Use:   "mint {mint_addr}",
-	Short: "Get Metaplex metadata for a given mint",
-	Args:  cobra.ExactArgs(1),
+var metaplexMedatadaUpdateV2Cmd = &cobra.Command{
+	Use:   "update-v2 {mint_addr/metadata_addr} {path_to_data_file} {update_authority}",
+	Short: "Update Metaplex Metadata V1 for a given mint",
+	Args:  cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 		vault := mustGetWallet()
 		rpcClient := getClient()
 		wsClient, err := getWsClient(ctx)
+
 		if err != nil {
 			return fmt.Errorf("unable to retrieve ws client: %w", err)
 		}
@@ -45,40 +48,62 @@ var metaplexUpdateMintCmd = &cobra.Command{
 			return fmt.Errorf("unable to decode metaplex metadata programId %q: %w", metaplexMetaProgramId, err)
 		}
 
-		mintAddr, err := solana.PublicKeyFromBase58(args[0])
+		address, err := solana.PublicKeyFromBase58(args[0])
 		if err != nil {
 			return fmt.Errorf("unable to decode mint addr: %w", err)
 		}
 
-		metadataAddr, err := metaplex.DeriveMetadataPublicKey(programID, mintAddr)
+		metadataAddr, metadata, err := getMetaplexMetadata(ctx, rpcClient, programID, address)
 		if err != nil {
-			return fmt.Errorf("unablt to decode metadata address: %w", err)
+			return fmt.Errorf("unable to rerieve metadata account: %w", err)
+		}
+		_ = metadata
+
+		file, err := os.Open(args[1])
+		if err != nil {
+			return fmt.Errorf("unable to open data file: %w", err)
 		}
 
-		v := true
-		updateAuthority := solana.MustPublicKeyFromBase58("EBXJg2Y7gdSbdsDWzM3tuu5fxkCGpg8HuDgGwgBgTXz3")
-		creators := []metaplex.Creator{
-			{
-				Address:  updateAuthority,
-				Verified: true,
-				Share:    100,
-			},
-			{
-				Address: solana.MustPublicKeyFromBase58("FsG3VK6mZtGRNzbxzGee7zTHuvFFbxKJYLDrFjCqfDNU"),
-				Share:   0,
-			},
+		newMetadata := &metaplex.DataV2{}
+		if err = json.NewDecoder(file).Decode(newMetadata); err != nil {
+			return fmt.Errorf("unable to decode data: %w", err)
 		}
-		updateMetadataInstruction := metaplex.NewUpdateMetadataAccountV1Instruction(
+
+		updateAuthority, err := solana.PublicKeyFromBase58(args[2])
+		if err != nil {
+			return fmt.Errorf("unable to decode mint addr: %w", err)
+		}
+
+		if !metadata.IsMutable {
+			return fmt.Errorf("unable to update metadata, content is not mutable")
+		}
+
+		if metadata.UpdateAuthority != updateAuthority {
+			return fmt.Errorf("current update authority in metatadata %q does not match update authority passed via command line %q", metadata.UpdateAuthority.String(), updateAuthority.String())
+		}
+
+		fmt.Printf("Updating Metadata @ %q from: \n", metadataAddr.String())
+		cnt, _ := json.MarshalIndent(metadata, "", " ")
+		fmt.Println(string(cnt))
+		fmt.Println("to:")
+		cnt, _ = json.MarshalIndent(newMetadata, "", " ")
+		fmt.Println(string(cnt))
+
+		if newMetadata.Creators != nil {
+			for idx, creator := range *newMetadata.Creators {
+				if creator.Address == updateAuthority {
+					creator.Verified = true
+					(*newMetadata.Creators)[idx] = creator
+				}
+			}
+		}
+
+		updateMetadataInstruction := metaplex.NewUpdateMetadataAccountV2Instruction(
 			programID,
-			&metaplex.Data{
-				Name:                 "Alfred 0042",
-				Symbol:               "Alf",
-				URI:                  "https://arweave.net/5kaIQKrgbLV5tztRttDB22YsuXj1aw4PZLU2HXy8qw8",
-				SellerFeeBasisPoints: 500,
-				Creators:             &creators,
-			},
-			nil,
-			&v,
+			newMetadata,
+			&updateAuthority,
+			&metadata.PrimarySaleHappened,
+			&metadata.IsMutable,
 			metadataAddr,
 			updateAuthority,
 		)
@@ -89,9 +114,7 @@ var metaplexUpdateMintCmd = &cobra.Command{
 			return fmt.Errorf("unable retrieve recent block hash: %w", err)
 		}
 
-		zlog.Debug("found block hash",
-			zap.String("block_hash", blockHashResult.Value.Blockhash.String()),
-		)
+		zlog.Debug("found block hash", zap.String("block_hash", blockHashResult.Value.Blockhash.String()))
 
 		trx, err := solana.NewTransaction([]solana.Instruction{
 			updateMetadataInstruction,
@@ -123,13 +146,12 @@ var metaplexUpdateMintCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Metaplex Metadata Updated, with transaction hash: %s\n", trxHash)
-		fmt.Printf("  Mint Address: %s\n", mintAddr.String())
 		fmt.Printf("  Metadata Address: %s\n", metadataAddr.String())
-		fmt.Printf("Run `slnc metaplex get mint %s` to view metadata", mintAddr.String())
+		fmt.Printf("Run `slnc metaplex get %s` to view metadata", metadataAddr.String())
 		return nil
 	},
 }
 
 func init() {
-	metaplexUpdateCmd.AddCommand(metaplexUpdateMintCmd)
+	metaplexMetadataCmd.AddCommand(metaplexMedatadaUpdateV2Cmd)
 }

@@ -53,6 +53,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	RootCmd.PersistentFlags().StringP("vault-file", "", "./solana-vault.json", "Wallet file that contains encrypted key material")
+	RootCmd.PersistentFlags().String("default-vault-key", "", "Default key to select from vault")
 	RootCmd.PersistentFlags().StringP("rpc-url", "u", defaultRPCURL, "API endpoint of solana blockchain node")
 	RootCmd.PersistentFlags().String("ws-url", defaultWSURL, "websocket API endpoint of solana blockchain node")
 	RootCmd.PersistentFlags().StringSliceP("http-header", "H", []string{}, "HTTP header to add to JSON-RPC requests")

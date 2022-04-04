@@ -1,0 +1,273 @@
+// Copyright 2020 dfuse Platform Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package cmd
+
+import (
+	"context"
+	"fmt"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/streamingfast/solana-go"
+	associatedtokenaccount "github.com/streamingfast/solana-go/programs/associated-token-account"
+	"github.com/streamingfast/solana-go/programs/metaplex"
+	"github.com/streamingfast/solana-go/programs/system"
+	"github.com/streamingfast/solana-go/programs/token"
+	"github.com/streamingfast/solana-go/rpc"
+	"github.com/streamingfast/solana-go/rpc/confirm"
+	"github.com/streamingfast/solana-go/rpc/ws"
+	"go.uber.org/zap"
+	"strconv"
+	"time"
+)
+
+var metaplexMedatadaMintEditionCmd = &cobra.Command{
+	Use:   "mint-edition {recipient} {master_mint} {edition}",
+	Short: "Mint an edition",
+	Args:  cobra.ExactArgs(3),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
+		vault := mustGetWallet()
+		rpcClient := getClient()
+		wsClient, err := getWsClient(ctx)
+		if err != nil {
+			return fmt.Errorf("unable to retrieve ws client: %w", err)
+		}
+		metaplexMetaProgramId := viper.GetString("metaplex-global-meta-program-id")
+		programID, err := solana.PublicKeyFromBase58(metaplexMetaProgramId)
+		if err != nil {
+			return fmt.Errorf("unable to decode metaplex metadata programId %q: %w", metaplexMetaProgramId, err)
+		}
+
+		adminKey, err := selectAccountFromVault(vault)
+		if err != nil {
+			return fmt.Errorf("unable to select admin key: %w", err)
+		}
+
+		recipientAddr, err := solana.PublicKeyFromBase58(args[0])
+		if err != nil {
+			return fmt.Errorf("unable to decode mint addr: %w", err)
+		}
+
+		masterMintAddr, err := solana.PublicKeyFromBase58(args[1])
+		if err != nil {
+			return fmt.Errorf("unable to decode master mint addr: %w", err)
+		}
+
+		editionNum, err := strconv.ParseUint(args[2], 10, 64)
+		if err != nil {
+			return fmt.Errorf("unable to parse edition number %q: %w", args[2], err)
+		}
+
+		rentLamports, err := rpcClient.GetMinimumBalanceForRentExemption(ctx, token.MINT_SIZE)
+		if err != nil {
+			return fmt.Errorf("unbale to get require rent exept for mint size: %w", err)
+		}
+
+		trxHash, err := mintEdition(ctx, rpcClient, wsClient, &mintEditionAccounts{
+			programID:      programID,
+			recipientAddr:  recipientAddr,
+			masterMintAddr: masterMintAddr,
+			adminKey:       adminKey,
+		}, editionNum, rentLamports);
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Minted: %s Recipient: %s, Edition: %d\n", trxHash, recipientAddr.String(), editionNum)
+		return nil
+	},
+}
+
+type mintEditionAccounts struct {
+	programID      solana.PublicKey
+	recipientAddr  solana.PublicKey
+	masterMintAddr solana.PublicKey
+	adminKey       solana.PrivateKey
+}
+
+func mintEdition(
+	ctx context.Context,
+	rpcClient *rpc.Client,
+	wsClient *ws.Client,
+	accounts *mintEditionAccounts,
+	editionNum uint64,
+	rentLamports int,
+) (string, error) {
+	mintPublicKey, mintPrivateKey, err := solana.NewRandomPrivateKey()
+	if err != nil {
+		return "", fmt.Errorf("unable to generate mint private key: %w", err)
+	}
+
+	newMetadataAddr, err := metaplex.DeriveMetadataPublicKey(accounts.programID, mintPublicKey)
+	if err != nil {
+		return "", fmt.Errorf("unable to dereive new metadata key: %w", err)
+	}
+
+	newEditionAddr, err := metaplex.DeriveMetadataEditionPublicKey(accounts.programID, mintPublicKey)
+	if err != nil {
+		return "", fmt.Errorf("unable to dervie new edition key: %w", err)
+	}
+
+	masterEditionAddr, err := metaplex.DeriveMetadataEditionPublicKey(accounts.programID, accounts.masterMintAddr)
+	if err != nil {
+		return "", fmt.Errorf("unable to derive master edition key: %w", err)
+	}
+
+	masterMetadataAddr, err := metaplex.DeriveMetadataPublicKey(accounts.programID, accounts.masterMintAddr)
+	if err != nil {
+		return "", fmt.Errorf("unable to derive master edition key: %w", err)
+	}
+
+	recipientSPLTokenAccountAddr := associatedtokenaccount.MustGetAssociatedTokenAddress(
+		accounts.masterMintAddr,
+		token.PROGRAM_ID,
+		accounts.recipientAddr,
+	)
+
+	edition := editionNum / 248
+	editionPdaAddr, err := metaplex.DeriveMetadataEditionCreationMarkPublicKey(accounts.programID, accounts.masterMintAddr, fmt.Sprintf("%d", edition))
+	if err != nil {
+		return "", fmt.Errorf("unable to derive edition creation account: %w", err)
+	}
+
+	masterSPLTokenAccountAddr := associatedtokenaccount.MustGetAssociatedTokenAddress(
+		accounts.masterMintAddr,
+		token.PROGRAM_ID,
+		accounts.adminKey.PublicKey(),
+	)
+
+	zlog.Info("attempting to mint",
+		zap.String("recipient_addr", accounts.recipientAddr.String()),
+		zap.String("mint_addr", mintPublicKey.String()),
+		zap.String("master_mint_addr", accounts.masterMintAddr.String()),
+		zap.String("recipient_spl_token_addr", recipientSPLTokenAccountAddr.String()),
+		zap.String("admin_key_addr", accounts.adminKey.PublicKey().String()),
+		zap.String("new_metadata_addr", newMetadataAddr.String()),
+		zap.String("new_edition_addr", newEditionAddr.String()),
+		zap.String("master_edition_addr", masterEditionAddr.String()),
+		zap.String("maste_metadata_addr", masterMetadataAddr.String()),
+		zap.String("edition_pda_addr", editionPdaAddr.String()),
+		zap.String("master_spl_token_account_addr", masterSPLTokenAccountAddr.String()),
+	)
+
+	instructions := []solana.Instruction{
+		system.NewCreateAccountInstruction(
+			uint64(rentLamports),
+			token.MINT_SIZE,
+			token.PROGRAM_ID,
+			accounts.adminKey.PublicKey(),
+			mintPublicKey,
+		),
+		token.NewInitializeMintInstruction(
+			0,
+			mintPublicKey,
+			accounts.adminKey.PublicKey(),
+			nil,
+			system.SYSVAR_RENT,
+		),
+		associatedtokenaccount.NewCreateInstruction(
+			accounts.adminKey.PublicKey(),
+			recipientSPLTokenAccountAddr,
+			accounts.recipientAddr,
+			mintPublicKey,
+			token.PROGRAM_ID,
+		),
+		token.NewMintTo(
+			1,
+			mintPublicKey,
+			recipientSPLTokenAccountAddr,
+			accounts.adminKey.PublicKey(),
+		),
+
+		metaplex.NewMintNewEditionFromMasterEditionViaToken(
+			accounts.programID,
+			editionNum,
+			newMetadataAddr,
+			newEditionAddr,
+			masterEditionAddr,
+			mintPublicKey,
+			editionPdaAddr,
+			accounts.adminKey.PublicKey(),
+			accounts.adminKey.PublicKey(),
+			accounts.adminKey.PublicKey(),
+			masterSPLTokenAccountAddr,
+			accounts.adminKey.PublicKey(),
+			masterMetadataAddr,
+		),
+	}
+
+	zlog.Info("minting")
+
+	trxHash := ""
+	i := 0
+	for i < RETRY_COUNT {
+		i++
+		trxHash, err = sendMintEditionTrx(ctx, rpcClient, wsClient, instructions, func(key solana.PublicKey) *solana.PrivateKey {
+			// create account need to be signed by the private key of the new account
+			// that is not in the vault and will be lost after the execution.
+			if mintPublicKey == key {
+				return &mintPrivateKey
+			}
+
+			if accounts.adminKey.PublicKey() == key {
+				return &accounts.adminKey
+			}
+			return nil
+		})
+		if err != nil {
+			zlog.Debug("error minting will retry", zap.Error(err))
+			time.Sleep(50 * time.Millisecond)
+			continue
+		}
+		break
+	}
+	if trxHash == "" {
+		return "", fmt.Errorf("exceed retry count could not resolve: %w", err)
+	}
+
+	return trxHash, nil
+}
+
+var RETRY_COUNT = 5
+
+type getterFunc = func(key solana.PublicKey) *solana.PrivateKey
+
+func sendMintEditionTrx(ctx context.Context, rpcClient *rpc.Client, wsClient *ws.Client, instructions []solana.Instruction, getter getterFunc) (string, error) {
+	blockHashResult, err := rpcClient.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+	if err != nil {
+		return "", fmt.Errorf("unable retrieve recent block hash: %w", err)
+	}
+
+	trx, err := solana.NewTransaction(instructions, blockHashResult.Value.Blockhash)
+	if err != nil {
+		return "", fmt.Errorf("unable to create transaction: %w", err)
+	}
+
+	zlog.Info("signing transactions")
+	_, err = trx.Sign(getter)
+	if err != nil {
+		return "", fmt.Errorf("unable to sign transaction: %w", err)
+	}
+
+	zlog.Info("sending transaction")
+	trxHash, err := confirm.SendAndConfirmTransaction(ctx, rpcClient, wsClient, trx)
+	if err != nil {
+		return "", fmt.Errorf("unable to send transaction: %w", err)
+	}
+	return trxHash, nil
+}
+func init() {
+	metaplexMetadataCmd.AddCommand(metaplexMedatadaMintEditionCmd)
+}

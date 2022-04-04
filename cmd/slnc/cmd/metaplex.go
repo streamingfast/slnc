@@ -24,5 +24,6 @@ var metaplexCmd = &cobra.Command{
 
 func init() {
 	metaplexCmd.PersistentFlags().String("meta-program-id", "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", "Metaplex program id")
+	metaplexCmd.PersistentFlags().String("candy-machine-program-id", "cndy3Z4yapfJBmL3ShUp5exZKqR3z33thTzeNMm2gRZ", "Metaplex Candy Machine Program ID")
 	RootCmd.AddCommand(metaplexCmd)
 }
