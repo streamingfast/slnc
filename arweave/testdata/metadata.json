@@ -1,0 +1,14 @@
+{
+  "attribute": "value",
+  "attribute1": "value1",
+  "attribute2": "value12",
+  "struct": {
+    "category": "image",
+    "files": [
+      {
+        "type": "image",
+        "uri": "whereItsHosted.com"
+      }
+    ]
+  }
+}
