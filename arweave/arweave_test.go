@@ -3,7 +3,6 @@ package arweave
 import (
 	"context"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/test-go/testify/require"
 	"go.uber.org/zap"
 	"io/ioutil"
@@ -27,7 +26,6 @@ func Test_ArweaveUpload(t *testing.T) {
 	require.NoError(t, err)
 	tx, err := arweave.Upload(ctx, cnt)
 	require.NoError(t, err)
-	spew.Dump(tx)
 	fmt.Println(tx.ID())
 }
 

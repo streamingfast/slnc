@@ -59,6 +59,18 @@ var metaplexmetadataUploadCmd = &cobra.Command{
 
 		data.URI = imageUrl
 
+		cnt, err := json.Marshal(data)
+		if err != nil {
+			return fmt.Errorf("unable to markshal metadata content: %w", err)
+		}
+
+		tx, err = arweave.UploadAndConfirm(ctx, cnt)
+		if err != nil {
+			return fmt.Errorf("failed to send data: %w", err)
+		}
+		metadatURL := fmt.Sprintf("https://arweave.net/%s", tx.ID())
+		fmt.Println("Metdata uploaded ULR: ", metadatURL)
+
 		return nil
 	},
 }

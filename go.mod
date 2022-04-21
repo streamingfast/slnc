@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/manifoldco/promptui v0.8.0
+	github.com/mendsley/gojwk v0.0.0-20141217222730-4d5ec6e58103
 	github.com/pkg/errors v0.9.1
 	github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f
 	github.com/spf13/cobra v1.3.0
@@ -16,6 +17,7 @@ require (
 	github.com/streamingfast/dstore v0.1.1-0.20211028233549-6fa17808533b
 	github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424
 	github.com/streamingfast/solana-go v0.5.1-0.20220404144932-c4a2370469e8
+	github.com/test-go/testify v1.1.4
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
@@ -41,6 +43,7 @@ require (
 	github.com/cncf/udpa/go v0.0.0-20210930031921-04548b0d99d4 // indirect
 	github.com/cncf/xds/go v0.0.0-20211130200136-a8f946100490 // indirect
 	github.com/daaku/go.zipexe v1.0.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/envoyproxy/go-control-plane v0.10.1 // indirect
 	github.com/envoyproxy/protoc-gen-validate v0.6.2 // indirect
 	github.com/eoscanada/eos-go v0.9.1-0.20200415144303-2adb25bcdeca // indirect
@@ -76,6 +79,7 @@ require (
 	github.com/near/borsh-go v0.3.1-0.20210831082424-4377deff6791 // indirect
 	github.com/openzipkin/zipkin-go v0.1.6 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sethvargo/go-retry v0.1.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
@@ -85,6 +89,7 @@ require (
 	github.com/streamingfast/opaque v0.0.0-20210811180740-0c01d37ea308 // indirect
 	github.com/streamingfast/shutter v1.5.0 // indirect
 	github.com/streamingfast/validator v0.0.0-20210812013448-b9da5752ce14 // indirect
+	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/teris-io/shortid v0.0.0-20201117134242-e59966efd125 // indirect
 	github.com/thedevsaddam/govalidator v1.9.6 // indirect
@@ -108,4 +113,5 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
