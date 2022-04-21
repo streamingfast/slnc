@@ -16,11 +16,16 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
 	"github.com/spf13/viper"
+	"github.com/streamingfast/cli"
+	"github.com/streamingfast/dhttp"
 	"github.com/streamingfast/slnc/vault"
 	"github.com/streamingfast/solana-go/rpc"
 	"github.com/streamingfast/solana-go/rpc/ws"
@@ -47,6 +52,10 @@ func getClient(opt ...rpc.ClientOption) *rpc.Client {
 		api.SetHeader(headerArray[0], headerArray[1])
 	}
 	return api
+}
+
+func getRPCURL() string {
+	return sanitizeAPIURL(viper.GetString("global-rpc-url"))
 }
 
 func getWsClient(ctx context.Context) (*ws.Client, error) {
@@ -112,4 +121,59 @@ func setupWallet() (*vault.Vault, error) {
 	}
 
 	return v, nil
+}
+
+var httpClient = &http.Client{
+	Transport: dhttp.NewLoggingRoundTripper(zlog, tracer, http.DefaultTransport),
+}
+
+// fetchAndPrintJSONFromURL fetches a JSON document from `jsonDataURL` (handles
+// `ipfs` scheme via an IPFS gateway, Pinata Cloud by default). It then decodes the fetched
+// document and print it to standard output in a used friendly way.
+func fetchAndPrintJSONFromURL(label string, jsonDataURL string) {
+	lowercasedLabel := strings.ToLower(label)
+
+	logger := zlog.With(zap.String("label", lowercasedLabel))
+	url, err := url.Parse(jsonDataURL)
+	if err != nil {
+		logger.Debug("invalid url", zap.String("label", "label"), zap.String("url", jsonDataURL), zap.Error(err))
+		return
+	}
+
+	if url.Scheme == "ipfs" {
+		fmt.Printf("IPFS scheme is not supported for now (URI %q)\n", url)
+		return
+	}
+
+	resp, err := httpClient.Get(jsonDataURL)
+	if err != nil {
+		logger.Debug("unable to fetch url", zap.String("url", jsonDataURL), zap.Error(err))
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 204 {
+		fmt.Printf("%s: <No Data Returned>\n", label)
+		return
+	}
+
+	if resp.StatusCode == 200 {
+		decoder := json.NewDecoder(resp.Body)
+
+		var metadata interface{}
+		err := decoder.Decode(&metadata)
+		if err != nil {
+			fmt.Printf("%s: Unable to decode response from %q (Error is %q)\n", label, jsonDataURL, err)
+			return
+		}
+
+		fmt.Println(label)
+		out, err := json.MarshalIndent(metadata, "", "  ")
+		cli.NoError(err, "unable to prettify json data")
+
+		fmt.Println(string(out))
+		return
+	}
+
+	fmt.Printf("%s: Failed %d\n", label, resp.StatusCode)
 }

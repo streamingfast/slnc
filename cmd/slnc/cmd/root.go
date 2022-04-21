@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/streamingfast/logging"
-	"go.uber.org/zap"
 )
 
 // Date represents the date when the compilation of the binary happen,
@@ -48,13 +47,13 @@ var RootCmd = &cobra.Command{
 	Short: "A command-line client to Solana clusters - by StreamingFast (streamingfast.io)",
 }
 
-var zlog *zap.Logger
-var tracer = logging.ApplicationLogger("slnc", "github.com/streamingfast/slnc/cmd/slnc/cmd", &zlog)
+var zlog, tracer = logging.ApplicationLogger("slnc", "github.com/streamingfast/slnc/cmd/slnc/cmd")
 
 func init() {
 	cobra.OnInitialize(initConfig)
 
 	RootCmd.PersistentFlags().StringP("vault-file", "", "./solana-vault.json", "Wallet file that contains encrypted key material")
+	RootCmd.PersistentFlags().String("default-vault-key", "", "Default key to select from vault")
 	RootCmd.PersistentFlags().StringP("rpc-url", "u", defaultRPCURL, "API endpoint of solana blockchain node")
 	RootCmd.PersistentFlags().String("ws-url", defaultWSURL, "websocket API endpoint of solana blockchain node")
 	RootCmd.PersistentFlags().StringSliceP("http-header", "H", []string{}, "HTTP header to add to JSON-RPC requests")
