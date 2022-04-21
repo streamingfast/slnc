@@ -29,6 +29,7 @@ import (
 	"github.com/streamingfast/solana-go/rpc/ws"
 	"go.uber.org/zap"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -75,12 +76,11 @@ var metaplexMedatadaMintEditionCmd = &cobra.Command{
 			return fmt.Errorf("unbale to get require rent exept for mint size: %w", err)
 		}
 
-		trxHash, err := mintEdition(ctx, rpcClient, wsClient, &mintEditionAccounts{
-			programID:      programID,
-			recipientAddr:  recipientAddr,
-			masterMintAddr: masterMintAddr,
-			adminKey:       adminKey,
-		}, editionNum, rentLamports);
+		trxHash, err := mintEdition(ctx, rpcClient, wsClient, &MintEdition{
+			RecipientAddr:  recipientAddr,
+			MasterMintAddr: masterMintAddr,
+			EditionNum:     editionNum,
+		}, programID, adminKey, rentLamports)
 		if err != nil {
 			return err
 		}
@@ -101,8 +101,9 @@ func mintEdition(
 	ctx context.Context,
 	rpcClient *rpc.Client,
 	wsClient *ws.Client,
-	accounts *mintEditionAccounts,
-	editionNum uint64,
+	mintEdition *MintEdition,
+	programID solana.PublicKey,
+	adminKey solana.PrivateKey,
 	rentLamports int,
 ) (string, error) {
 	mintPublicKey, mintPrivateKey, err := solana.NewRandomPrivateKey()
@@ -110,54 +111,54 @@ func mintEdition(
 		return "", fmt.Errorf("unable to generate mint private key: %w", err)
 	}
 
-	newMetadataAddr, err := metaplex.DeriveMetadataPublicKey(accounts.programID, mintPublicKey)
+	newMetadataAddr, err := metaplex.DeriveMetadataPublicKey(programID, mintPublicKey)
 	if err != nil {
 		return "", fmt.Errorf("unable to dereive new metadata key: %w", err)
 	}
 
-	newEditionAddr, err := metaplex.DeriveMetadataEditionPublicKey(accounts.programID, mintPublicKey)
+	newEditionAddr, err := metaplex.DeriveMetadataEditionPublicKey(programID, mintPublicKey)
 	if err != nil {
 		return "", fmt.Errorf("unable to dervie new edition key: %w", err)
 	}
 
-	masterEditionAddr, err := metaplex.DeriveMetadataEditionPublicKey(accounts.programID, accounts.masterMintAddr)
+	masterEditionAddr, err := metaplex.DeriveMetadataEditionPublicKey(programID, mintEdition.MasterMintAddr)
 	if err != nil {
 		return "", fmt.Errorf("unable to derive master edition key: %w", err)
 	}
 
-	masterMetadataAddr, err := metaplex.DeriveMetadataPublicKey(accounts.programID, accounts.masterMintAddr)
+	masterMetadataAddr, err := metaplex.DeriveMetadataPublicKey(programID, mintEdition.MasterMintAddr)
 	if err != nil {
 		return "", fmt.Errorf("unable to derive master edition key: %w", err)
 	}
 
 	recipientSPLTokenAccountAddr := associatedtokenaccount.MustGetAssociatedTokenAddress(
-		accounts.masterMintAddr,
+		mintPublicKey,
 		token.PROGRAM_ID,
-		accounts.recipientAddr,
+		mintEdition.RecipientAddr,
 	)
 
-	edition := editionNum / 248
-	editionPdaAddr, err := metaplex.DeriveMetadataEditionCreationMarkPublicKey(accounts.programID, accounts.masterMintAddr, fmt.Sprintf("%d", edition))
+	edition := mintEdition.EditionNum / 248
+	editionPdaAddr, err := metaplex.DeriveMetadataEditionCreationMarkPublicKey(programID, mintEdition.MasterMintAddr, fmt.Sprintf("%d", edition))
 	if err != nil {
 		return "", fmt.Errorf("unable to derive edition creation account: %w", err)
 	}
 
 	masterSPLTokenAccountAddr := associatedtokenaccount.MustGetAssociatedTokenAddress(
-		accounts.masterMintAddr,
+		mintEdition.MasterMintAddr,
 		token.PROGRAM_ID,
-		accounts.adminKey.PublicKey(),
+		adminKey.PublicKey(),
 	)
 
 	zlog.Info("attempting to mint",
-		zap.String("recipient_addr", accounts.recipientAddr.String()),
+		zap.String("recipient_addr", mintEdition.RecipientAddr.String()),
 		zap.String("mint_addr", mintPublicKey.String()),
-		zap.String("master_mint_addr", accounts.masterMintAddr.String()),
+		zap.String("master_mint_addr", mintEdition.MasterMintAddr.String()),
 		zap.String("recipient_spl_token_addr", recipientSPLTokenAccountAddr.String()),
-		zap.String("admin_key_addr", accounts.adminKey.PublicKey().String()),
+		zap.String("admin_key_addr", adminKey.PublicKey().String()),
 		zap.String("new_metadata_addr", newMetadataAddr.String()),
 		zap.String("new_edition_addr", newEditionAddr.String()),
 		zap.String("master_edition_addr", masterEditionAddr.String()),
-		zap.String("maste_metadata_addr", masterMetadataAddr.String()),
+		zap.String("master_metadata_addr", masterMetadataAddr.String()),
 		zap.String("edition_pda_addr", editionPdaAddr.String()),
 		zap.String("master_spl_token_account_addr", masterSPLTokenAccountAddr.String()),
 	)
@@ -167,20 +168,20 @@ func mintEdition(
 			uint64(rentLamports),
 			token.MINT_SIZE,
 			token.PROGRAM_ID,
-			accounts.adminKey.PublicKey(),
+			adminKey.PublicKey(),
 			mintPublicKey,
 		),
 		token.NewInitializeMintInstruction(
 			0,
 			mintPublicKey,
-			accounts.adminKey.PublicKey(),
+			adminKey.PublicKey(),
 			nil,
 			system.SYSVAR_RENT,
 		),
 		associatedtokenaccount.NewCreateInstruction(
-			accounts.adminKey.PublicKey(),
+			adminKey.PublicKey(),
 			recipientSPLTokenAccountAddr,
-			accounts.recipientAddr,
+			mintEdition.RecipientAddr,
 			mintPublicKey,
 			token.PROGRAM_ID,
 		),
@@ -188,27 +189,24 @@ func mintEdition(
 			1,
 			mintPublicKey,
 			recipientSPLTokenAccountAddr,
-			accounts.adminKey.PublicKey(),
+			adminKey.PublicKey(),
 		),
-
 		metaplex.NewMintNewEditionFromMasterEditionViaToken(
-			accounts.programID,
-			editionNum,
+			programID,
+			mintEdition.EditionNum,
 			newMetadataAddr,
 			newEditionAddr,
 			masterEditionAddr,
 			mintPublicKey,
 			editionPdaAddr,
-			accounts.adminKey.PublicKey(),
-			accounts.adminKey.PublicKey(),
-			accounts.adminKey.PublicKey(),
+			adminKey.PublicKey(),
+			adminKey.PublicKey(),
+			adminKey.PublicKey(),
 			masterSPLTokenAccountAddr,
-			accounts.adminKey.PublicKey(),
+			adminKey.PublicKey(),
 			masterMetadataAddr,
 		),
 	}
-
-	zlog.Info("minting")
 
 	trxHash := ""
 	i := 0
@@ -221,13 +219,13 @@ func mintEdition(
 				return &mintPrivateKey
 			}
 
-			if accounts.adminKey.PublicKey() == key {
-				return &accounts.adminKey
+			if adminKey.PublicKey() == key {
+				return &adminKey
 			}
 			return nil
 		})
 		if err != nil {
-			zlog.Debug("error minting will retry", zap.Error(err))
+			zlog.Info("error minting will retry", zap.Error(err))
 			time.Sleep(50 * time.Millisecond)
 			continue
 		}
@@ -255,15 +253,18 @@ func sendMintEditionTrx(ctx context.Context, rpcClient *rpc.Client, wsClient *ws
 		return "", fmt.Errorf("unable to create transaction: %w", err)
 	}
 
-	zlog.Info("signing transactions")
 	_, err = trx.Sign(getter)
 	if err != nil {
 		return "", fmt.Errorf("unable to sign transaction: %w", err)
 	}
 
-	zlog.Info("sending transaction")
+	zlog.Info("transction signed, sending to chain", zap.String("trx_sign", trx.Signatures[0].String()))
 	trxHash, err := confirm.SendAndConfirmTransaction(ctx, rpcClient, wsClient, trx)
 	if err != nil {
+		if strings.Contains(err.Error(), "Instruction 4: custom program error: 0x3") {
+			zlog.Info("mint edition failed, most likely mint exisit, skipping")
+			return "lost", nil
+		}
 		return "", fmt.Errorf("unable to send transaction: %w", err)
 	}
 	return trxHash, nil

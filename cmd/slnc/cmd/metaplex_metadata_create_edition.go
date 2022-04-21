@@ -28,7 +28,7 @@ import (
 )
 
 var metaplexMedatadaCreateEditionCmd = &cobra.Command{
-	Use:   "create-edition {mint} {mas_supply",
+	Use:   "create-edition {mint} {mas_supply}",
 	Short: "Create Metaplex Master Edition v3",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -56,6 +56,7 @@ var metaplexMedatadaCreateEditionCmd = &cobra.Command{
 			return fmt.Errorf("unable to parse max supply: %w", err)
 		}
 
+		zlog.Info("retrieving mint", zap.String("mint_addr", mintAddr.String()))
 		mint, err := token.FetchMint(ctx, rpcClient, mintAddr)
 		if err != nil {
 			return fmt.Errorf("unable to get mint: %w", err)
@@ -77,9 +78,9 @@ var metaplexMedatadaCreateEditionCmd = &cobra.Command{
 			return fmt.Errorf("unable to decode metadata: %w", err)
 		}
 
-		if uint64(mint.Supply) != 1 {
-			return fmt.Errorf("unable to crearte master edition without a mint supply set to 1. You must mint first")
-		}
+		//if uint64(mint.Supply) != 1 {
+		//	return fmt.Errorf("unable to create master edition without a mint supply set to 1. You must mint first")
+		//}
 
 		var mintAutority *solana.Account
 		var metadataUpdateAthority *solana.Account
