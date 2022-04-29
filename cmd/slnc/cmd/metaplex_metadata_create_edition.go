@@ -57,7 +57,7 @@ var metaplexMedatadaCreateEditionCmd = &cobra.Command{
 		}
 
 		zlog.Info("retrieving mint", zap.String("mint_addr", mintAddr.String()))
-		mint, err := token.FetchMint(ctx, rpcClient, mintAddr)
+		mint, err := token.FetchMint(rpcClient, mintAddr)
 		if err != nil {
 			return fmt.Errorf("unable to get mint: %w", err)
 		}
@@ -68,7 +68,7 @@ var metaplexMedatadaCreateEditionCmd = &cobra.Command{
 		}
 
 		var acc *rpc.GetAccountInfoResult
-		acc, err = rpcClient.GetAccountInfo(ctx, metadataAddr)
+		acc, err = rpcClient.GetAccountInfo(metadataAddr)
 		if err != nil {
 			return fmt.Errorf("unable to retrieve account: %w", err)
 		}
@@ -137,7 +137,7 @@ var metaplexMedatadaCreateEditionCmd = &cobra.Command{
 			),
 		}
 
-		blockHashResult, err := rpcClient.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+		blockHashResult, err := rpcClient.GetLatestBlockhash(rpc.CommitmentFinalized)
 		if err != nil {
 			return fmt.Errorf("unable retrieve recent block hash: %w", err)
 		}

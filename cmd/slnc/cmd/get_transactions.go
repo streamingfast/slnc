@@ -15,10 +15,8 @@
 package cmd
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 	"github.com/streamingfast/solana-go"
 	_ "github.com/streamingfast/solana-go/programs/serum"
@@ -35,7 +33,6 @@ var getTransactionsCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := getClient()
-		ctx := context.Background()
 
 		address := args[0]
 		pubKey, err := solana.PublicKeyFromBase58(address)
@@ -43,7 +40,7 @@ var getTransactionsCmd = &cobra.Command{
 			return fmt.Errorf("invalid account address %q: %w", address, err)
 		}
 
-		csList, err := client.GetConfirmedSignaturesForAddress2(ctx, pubKey, &rpc.GetConfirmedSignaturesForAddress2Opts{
+		csList, err := client.GetSignaturesForAddress(pubKey, &rpc.GetSignaturesForAddressOpts{
 			Limit:  1,
 			Before: "",
 			Until:  "",
@@ -62,19 +59,20 @@ var getTransactionsCmd = &cobra.Command{
 			text.EncoderColorGreen.Print("Memo: ")
 			fmt.Println(cs.Memo)
 
-			ct, err := client.GetConfirmedTransaction(ctx, cs.Signature)
+			ct, err := client.GetConfirmedTransaction(cs.Signature)
 			if err != nil {
 				return fmt.Errorf("unable to get confirmed transaction with signature %q: %w", cs.Signature, err)
 			}
 
 			if ct.Meta.Err != nil {
-				return fmt.Errorf("unable to get confirmed transaction with signature %q: %s", cs.Signature, ct.Meta.Err)
+				cnt, _ := json.Marshal(ct.Meta.Err.Raw)
+				return fmt.Errorf("unable to get confirmed transaction with signature %q: %s", cs.Signature, string(cnt))
 			}
 
 			fmt.Print("\nInstructions:\n-------------\n\n")
 			for _, i := range ct.Transaction.Message.Instructions {
 
-				id, err := ct.Transaction.ResolveProgramIDIndex(i.ProgramIDIndex)
+				id, err := ct.Transaction.ResolveProgramIdIndex(uint64(i.ProgramIdIndex))
 				if err != nil {
 					return fmt.Errorf("unable to resolve program ID: %w", err)
 				}
@@ -86,22 +84,22 @@ var getTransactionsCmd = &cobra.Command{
 					fmt.Println("Accounts:")
 					for _, accIndex := range i.Accounts {
 						key := ct.Transaction.Message.AccountKeys[accIndex]
-
-						fmt.Printf("%s Is Writable: %t Is Signer: %t\n", key.String(), ct.Transaction.IsWritable(key), ct.Transaction.IsSigner(key))
+						fmt.Printf("%s\n", key.String())
+						//fmt.Printf("%s Is Writable: %t Is Signer: %t\n", key.String(), ct.Transaction.IsWritable(key), ct.Transaction.IsSigner(key))
 					}
 					fmt.Printf("\n\n")
 					continue
 				}
 
-				decoded, err := decoder(ct.Transaction.AccountMetaList(), i.Data)
-				if err != nil {
-					return fmt.Errorf("unable to decode instruction: %w", err)
-				}
-
-				err = text.NewEncoder(os.Stdout).Encode(decoded, nil)
-				if err != nil {
-					return fmt.Errorf("unable to text encoder instruction: %w", err)
-				}
+				//decoded, err := decoder(ct.Transaction.AccountMetaList(), i.Data)
+				//if err != nil {
+				//	return fmt.Errorf("unable to decode instruction: %w", err)
+				//}
+				//
+				//err = text.NewEncoder(os.Stdout).Encode(decoded, nil)
+				//if err != nil {
+				//	return fmt.Errorf("unable to text encoder instruction: %w", err)
+				//}
 			}
 			text.EncoderColorCyan.Print("\n\nEnd of transaction\n\n")
 		}

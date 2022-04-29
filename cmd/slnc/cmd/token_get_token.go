@@ -28,8 +28,6 @@ var tokenGetAccountCmd = &cobra.Command{
 	Short: "Retrieves token information",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := cmd.Context()
-
 		tokenAddress, err := solana.PublicKeyFromBase58(args[0])
 		if err != nil {
 			return fmt.Errorf("decoding mint addr: %w", err)
@@ -37,7 +35,7 @@ var tokenGetAccountCmd = &cobra.Command{
 
 		client := getClient()
 
-		acct, err := client.GetAccountInfo(ctx, tokenAddress)
+		acct, err := client.GetAccountInfo(tokenAddress)
 		if err != nil {
 			return fmt.Errorf("couldn't get account data: %w", err)
 		}

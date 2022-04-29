@@ -33,10 +33,8 @@ var getSPLTokenCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := getClient()
-		ctx := cmd.Context()
 
 		resp, err := client.GetProgramAccounts(
-			ctx,
 			solana.MustPublicKeyFromBase58("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
 			&rpc.GetProgramAccountsOpts{
 				Filters: []rpc.RPCFilter{

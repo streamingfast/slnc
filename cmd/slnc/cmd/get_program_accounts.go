@@ -31,7 +31,7 @@ var getProgramAccountsCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := getClient()
 
-		resp, err := client.GetProgramAccounts(cmd.Context(), solana.MustPublicKeyFromBase58(args[0]), nil)
+		resp, err := client.GetProgramAccounts(solana.MustPublicKeyFromBase58(args[0]), nil)
 		if err != nil {
 			return err
 		}

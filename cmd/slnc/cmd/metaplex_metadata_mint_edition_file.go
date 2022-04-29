@@ -57,7 +57,7 @@ var metaplexMedatadaMintEditionFromFileCmd = &cobra.Command{
 			return fmt.Errorf("unable to select admin key: %w", err)
 		}
 
-		rentLamports, err := rpcClient.GetMinimumBalanceForRentExemption(ctx, token.MINT_SIZE)
+		rentLamports, err := rpcClient.GetMinimumBalanceForRentExemption(token.MINT_SIZE)
 		if err != nil {
 			return fmt.Errorf("unbale to get require rent exept for mint size: %w", err)
 		}

@@ -37,7 +37,7 @@ var tokenCloseAccountCmd = &cobra.Command{
 			return fmt.Errorf("decoding owner key: %w", err)
 		}
 
-		if _, err = rpcCli.GetAccountInfo(ctx, accountKey); err != nil {
+		if _, err = rpcCli.GetAccountInfo(accountKey); err != nil {
 			return fmt.Errorf("couldn't get account data: %w", err)
 		}
 

@@ -108,7 +108,7 @@ var metaplexMedatadaUpdateV1Cmd = &cobra.Command{
 		)
 
 		zlog.Debug("retrieving block hash")
-		blockHashResult, err := rpcClient.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+		blockHashResult, err := rpcClient.GetLatestBlockhash(rpc.CommitmentFinalized)
 		if err != nil {
 			return fmt.Errorf("unable retrieve recent block hash: %w", err)
 		}

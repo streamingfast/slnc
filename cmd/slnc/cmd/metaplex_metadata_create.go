@@ -60,7 +60,7 @@ var metaplexMedatadaCreateCmd = &cobra.Command{
 			return fmt.Errorf("unable to decode data: %w", err)
 		}
 
-		rentLamports, err := rpcClient.GetMinimumBalanceForRentExemption(ctx, token.MINT_SIZE)
+		rentLamports, err := rpcClient.GetMinimumBalanceForRentExemption(token.MINT_SIZE)
 		if err != nil {
 			return fmt.Errorf("unbale to get require rent exept for mint size: %w", err)
 		}
@@ -113,7 +113,7 @@ var metaplexMedatadaCreateCmd = &cobra.Command{
 			),
 		}
 
-		blockHashResult, err := rpcClient.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+		blockHashResult, err := rpcClient.GetLatestBlockhash(rpc.CommitmentFinalized)
 		if err != nil {
 			return fmt.Errorf("unable retrieve recent block hash: %w", err)
 		}

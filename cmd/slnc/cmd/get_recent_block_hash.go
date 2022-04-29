@@ -15,22 +15,19 @@
 package cmd
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
 )
 
-var getRecentBlockhashCmd = &cobra.Command{
+var GetLatestBlockhashCmd = &cobra.Command{
 	Use:   "recent-blockhash",
 	Short: "Retrieve a recent blockhash, needed for crafting transactions",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := getClient()
-		ctx := context.Background()
-
-		resp, err := client.GetRecentBlockhash(ctx, "")
+		resp, err := client.GetLatestBlockhash("")
 		if err != nil {
 			return err
 		}
@@ -43,5 +40,5 @@ var getRecentBlockhashCmd = &cobra.Command{
 }
 
 func init() {
-	getCmd.AddCommand(getRecentBlockhashCmd)
+	getCmd.AddCommand(GetLatestBlockhashCmd)
 }

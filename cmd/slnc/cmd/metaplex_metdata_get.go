@@ -62,7 +62,7 @@ func getMetaplexMetadata(ctx context.Context, rpcClient *rpc.Client, metaplexMet
 	metadataAddr := addr
 	var acc *rpc.GetAccountInfoResult
 	var err error
-	if acc, err = rpcClient.GetAccountInfo(ctx, metadataAddr); err != nil {
+	if acc, err = rpcClient.GetAccountInfo(metadataAddr); err != nil {
 		return solana.PublicKey{}, nil, fmt.Errorf("unable to retrieve account: %w", err)
 	}
 	if acc.Value.Owner != metaplexMetadataProgramID {
@@ -71,7 +71,7 @@ func getMetaplexMetadata(ctx context.Context, rpcClient *rpc.Client, metaplexMet
 			return solana.PublicKey{}, nil, fmt.Errorf("unable to derive metadata address: %w", err)
 		}
 
-		acc, err = rpcClient.GetAccountInfo(ctx, metadataAddr)
+		acc, err = rpcClient.GetAccountInfo(metadataAddr)
 		if err != nil {
 			return solana.PublicKey{}, nil, fmt.Errorf("unable to retrieve account: %w", err)
 		}

@@ -38,7 +38,7 @@ var tokenTransferCmd = &cobra.Command{
 			return fmt.Errorf("unable to decode amount: %w", err)
 		}
 
-		acct, err := rpcCli.GetAccountInfo(ctx, splTokenAccount)
+		acct, err := rpcCli.GetAccountInfo(splTokenAccount)
 		if err != nil {
 			return fmt.Errorf("couldn't get spl token account data: %w", err)
 		}

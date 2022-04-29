@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/streamingfast/solana-go/rpc"
@@ -85,14 +84,14 @@ var tokenRegistryRegisterCmd = &cobra.Command{
 			return fmt.Errorf("registrar key must be present in the vault to register a token")
 		}
 
-		blockHashResult, err := client.GetRecentBlockhash(context.Background(), rpc.CommitmentProcessed)
+		blockHashResult, err := client.GetLatestBlockhash(rpc.CommitmentProcessed)
 		if err != nil {
 			return fmt.Errorf("unable retrieve recent block hash: %w", err)
 		}
 
 		tokenMetaAccount := solana.NewAccount()
 
-		lamport, err := client.GetMinimumBalanceForRentExemption(context.Background(), tokenregistry.TOKEN_META_SIZE)
+		lamport, err := client.GetMinimumBalanceForRentExemption(tokenregistry.TOKEN_META_SIZE)
 		if err != nil {
 			return fmt.Errorf("unable to retrieve lapoint rent: %w", err)
 		}

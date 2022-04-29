@@ -3,6 +3,7 @@ module github.com/streamingfast/slnc
 go 1.17
 
 require (
+	github.com/davecgh/go-spew v1.1.1
 	github.com/manifoldco/promptui v0.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f
@@ -15,7 +16,7 @@ require (
 	github.com/streamingfast/dhttp v0.0.2-0.20220305232447-c94e04e73c8a
 	github.com/streamingfast/dstore v0.1.1-0.20211028233549-6fa17808533b
 	github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424
-	github.com/streamingfast/solana-go v0.5.1-0.20220404144932-c4a2370469e8
+	github.com/streamingfast/solana-go v0.5.1-0.20220429121906-4ddadc72342d
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
@@ -109,3 +110,5 @@ require (
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace github.com/streamingfast/solana-go => /Users/julien/codebase/sf/solana-go

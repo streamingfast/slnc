@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/streamingfast/solana-go"
 
 	"github.com/spf13/cobra"
 )
@@ -27,7 +28,11 @@ var getBalanceCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := getClient()
 
-		resp, err := client.GetBalance(cmd.Context(), args[0], "")
+		key, err := solana.PublicKeyFromBase58(args[0])
+		if err != nil {
+			return err
+		}
+		resp, err := client.GetBalance(key, nil)
 		if err != nil {
 			return err
 		}

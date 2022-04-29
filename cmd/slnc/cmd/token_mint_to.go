@@ -41,7 +41,7 @@ var tokenMintToCmd = &cobra.Command{
 			return fmt.Errorf("unable to parse amount %q: %w", args[2], err)
 		}
 
-		mint, err := token.FetchMint(ctx, rpcCli, mintAddr)
+		mint, err := token.FetchMint(rpcCli, mintAddr)
 		if err != nil {
 			return fmt.Errorf("unable to get mint: %w", err)
 		}
@@ -64,7 +64,7 @@ var tokenMintToCmd = &cobra.Command{
 		)
 
 		instructions := []solana.Instruction{}
-		_, err = rpcCli.GetAccountInfo(ctx, recipientSPLTokenAccount)
+		_, err = rpcCli.GetAccountInfo(recipientSPLTokenAccount)
 		if err != nil && err != rpc.ErrNotFound {
 			return fmt.Errorf("failed to look up recipient spl token account %q: %w", recipientSPLTokenAccount.String(), err)
 		}
@@ -85,7 +85,7 @@ var tokenMintToCmd = &cobra.Command{
 			signer.PublicKey(),
 		))
 
-		blockHashResult, err := rpcCli.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+		blockHashResult, err := rpcCli.GetLatestBlockhash(rpc.CommitmentFinalized)
 		if err != nil {
 			return fmt.Errorf("unable retrieve recent block hash: %w", err)
 		}

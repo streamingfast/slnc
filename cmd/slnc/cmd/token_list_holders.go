@@ -38,7 +38,7 @@ var tokenListHoldersCmd = &cobra.Command{
 			return fmt.Errorf("decoding owner addr: %w", err)
 		}
 
-		accounts, err := token.FetchAccountHolders(cmd.Context(), rpcCli, ownerAddr)
+		accounts, err := token.FetchAccountHolders(rpcCli, ownerAddr)
 		if err != nil {
 			return fmt.Errorf("unable to retrieve mints: %w", err)
 		}
