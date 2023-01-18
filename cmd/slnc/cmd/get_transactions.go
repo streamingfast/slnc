@@ -72,11 +72,7 @@ var getTransactionsCmd = &cobra.Command{
 			fmt.Print("\nInstructions:\n-------------\n\n")
 			for _, i := range ct.Transaction.Message.Instructions {
 
-				id, err := ct.Transaction.ResolveProgramIdIndex(uint64(i.ProgramIdIndex))
-				if err != nil {
-					return fmt.Errorf("unable to resolve program ID: %w", err)
-				}
-
+				id := ct.Transaction.Message.AccountKeys[i.ProgramIdIndex]
 				decoder := solana.InstructionDecoderRegistry[id.String()]
 				if decoder == nil {
 					fmt.Println("raw instruction:")

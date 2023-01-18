@@ -3,7 +3,6 @@ module github.com/streamingfast/slnc
 go 1.17
 
 require (
-	github.com/davecgh/go-spew v1.1.1
 	github.com/manifoldco/promptui v0.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f
@@ -110,5 +109,3 @@ require (
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
-
-replace github.com/streamingfast/solana-go => /Users/julien/codebase/sf/solana-go
